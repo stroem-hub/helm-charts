@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "stroem-server.fullname" . }}
+  labels:
+    {{- include "stroem-server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "stroem-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/configmap-config: {{ include (print $.Template.BasePath "/configmap-config.yaml") . | sha256sum }}
+        checksum/configmap-env: {{ include (print $.Template.BasePath "/configmap-env.yaml") . | sha256sum }}
+        checksum/secrets-env: {{ include (print $.Template.BasePath "/secrets-env.yaml") . | sha256sum }}
+        checksum/secrets-env-ref: {{ .Values.envFromSecret | default "" | sha256sum }}
+        checksum/secrets-config-ref: {{ .Values.configFromSecret | default "" | sha256sum }}
+      {{ if .Values.podAnnotations }}
+      {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "stroem-server.selectorLabels" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "stroem-server.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 6
+            successThreshold: 1
+            httpGet:
+              path: /healthz
+              port: http
+
+          startupProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+            successThreshold: 1
+            httpGet:
+              path: /healthz
+              port: http
+
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+            successThreshold: 1
+            httpGet:
+              path: /readyz
+              port: http
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          envFrom:
+          {{- if .Values.extraEnv }}
+          - configMapRef:
+              name: {{ include "stroem-server.fullname" . }}-env
+          {{- end }}
+          {{- if .Values.extraSecretEnv }}
+          - secretRef:
+              name: {{ include "stroem-server.fullname" . }}-env
+          {{- end }}
+          {{- if .Values.envFromSecret }}
+          - secretRef:
+              name: {{ .Values.envFromSecret }}
+          {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/stroem.yaml
+              subPath: stroem.yaml
+              readOnly: true
+            - name: workspace
+              mountPath: /var/lib/stroem/workspace
+              {{- if and .Values.persistentVolumeClaim.enabled .Values.persistentVolumeClaim.subPath }}
+              subPath: {{ .Values.persistentVolumeClaim.subPath }}
+              {{- end }}
+          {{- with .Values.extraVolumeMounts }}
+            {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: workspace
+          {{- if .Values.persistentVolumeClaim.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistentVolumeClaim.existingClaim }}{{ .Values.persistentVolumeClaim.existingClaim }}{{- else }}{{ template "stroem-server.fullname" . }}{{- end }}
+          {{- else }}
+          emptyDir: { }
+          {{- end }}
+      {{- if .Values.config }}
+        - name: config
+          configMap:
+            name: {{ include "stroem-server.fullname" . }}-config
+      {{- end }}
+      {{- if .Values.configFromSecret }}
+        - name: config
+          secret:
+            secretName: {{ .Values.configFromSecret }}
+      {{- end }}
+      {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
+      {{- end }}

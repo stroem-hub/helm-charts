@@ -1,0 +1,12 @@
+{{- if .Values.extraEnv -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "stroem-server.fullname" . }}-env
+  labels:
+    {{- include "stroem-server.labels" . | nindent 4 }}
+data:
+  {{- range $name, $config := .Values.extraEnv }}
+  {{ $name }}: {{ $config | quote }}
+  {{- end }}
+{{- end }}
