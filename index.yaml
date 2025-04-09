@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  stroem-server:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2025-04-09T13:43:57.698683771Z"
+    digest: 2972400d6ca3ccc6bcea4ae88a291fcf1f0f5505828360dee2ecacfe7f4e8799
+    name: stroem-server
+    type: application
+    urls:
+    - https://github.com/stroem-hub/helm-charts/releases/download/stroem-server-0.1.0/stroem-server-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-04-09T13:43:57.698692497Z"
