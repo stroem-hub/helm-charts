@@ -10,4 +10,14 @@ entries:
     urls:
     - https://github.com/stroem-hub/helm-charts/releases/download/stroem-server-0.1.0/stroem-server-0.1.0.tgz
     version: 0.1.0
-generated: "2025-04-09T13:43:57.698692497Z"
+  stroem-worker:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2025-04-29T05:31:48.776914685Z"
+    digest: 52f70b522ad8175df2f2fcfdb21e543059740dd05d9cc57356b5b87bae3c31ee
+    name: stroem-worker
+    type: application
+    urls:
+    - https://github.com/stroem-hub/helm-charts/releases/download/stroem-worker-0.1.0/stroem-worker-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-04-29T05:31:48.776920897Z"
